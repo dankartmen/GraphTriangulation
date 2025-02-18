@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>C:\Users\Admin\IdeaProjects\Graph\out\artifacts\Graph_jar2\Graph.jar</jar>
+  <outfile>C:\Users\Admin\IdeaProjects\Graph\Graph.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl></downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest>C:\Users\Admin\IdeaProjects\Graph\src\META-INF\MANIFEST.MF</manifest>
+  <icon>C:\Users\Admin\Downloads\knowledge-graph.ico</icon>
+  <jre>
+    <path>C:\Program Files\Java\jdk-21</path>
+    <requiresJdk>true</requiresJdk>
+    <requires64Bit>true</requires64Bit>
+    <minVersion></minVersion>
+    <maxVersion></maxVersion>
+  </jre>
+</launch4jConfig>
