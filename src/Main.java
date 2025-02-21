@@ -45,12 +45,11 @@ public class Main extends Application {
         createMatrixButton.setOnAction(event -> {
             // Проверка кратности количества вершин 3
             if (vertices.size() % 3 != 0) {
-                Alert alert = new Alert(Alert.AlertType.WARNING); // переменная для обовещения об ошибке
-                alert.setTitle("Ошибка"); // заголовок
-                alert.setHeaderText("Некорректное количество вершин");
-                alert.setContentText("Количество вершин должно быть кратно 3!\n"
-                        + "Текущее количество: " + vertices.size());
-                alert.showAndWait();
+                showAlert(
+                        "Ошибка",
+                        "Некорректное количество вершин",
+                        "Количество вершин должно быть кратно 3!\nТекущее количество: " + vertices.size()
+                );
                 return; // Прерываем выполнение
             }
 
@@ -130,27 +129,38 @@ public class Main extends Application {
                 }
             } else if(event.getButton() == MouseButton.MIDDLE) { // Если нажато колесико мыши
                 Circle vertex = findVertexAt(event.getX(), event.getY(), vertices); // Сохраняем вершину в месте клика
-                if (selectedVertex == null) {
-                    // Если вершина не выбрана, выбираем текущую
-                    selectedVertex = vertex;
-                    System.out.println("Вершина выбрана: " + vertex);
-                } else {
-                    saveState();
-                    // Если вершина уже выбрана, создаем ребро между выбранной и текущей вершиной
-                    // Находим индексы выбранных вершин в списке вершин
-                    int startIndex = vertices.indexOf(selectedVertex);
-                    int endIndex = vertices.indexOf(vertex);
-                    if(startIndex != endIndex){
-                        Line edge = new Line( // Cоздаём линию
-                            selectedVertex.getCenterX(), selectedVertex.getCenterY(),
-                            vertex.getCenterX(), vertex.getCenterY()
-                        );
-                        edges.add(new EdgeInfo(startIndex, endIndex,edge)); // Добавляем ребро в список
-                        graphPane.getChildren().add(edge); // Выводим ребра на экран
-                        System.out.println("Ребро создано между " + selectedVertex + " и " + vertex);
-                    }
+                if (vertex != null){
+                    if (selectedVertex == null) {
+                        // Если вершина не выбрана, выбираем текущую
+                        selectedVertex = vertex;
+                        System.out.println("Вершина выбрана: " + vertex);
+                    } else {
+                        saveState();
+                        // Если вершина уже выбрана, создаем ребро между выбранной и текущей вершиной
+                        // Находим индексы выбранных вершин в списке вершин
+                        int startIndex = vertices.indexOf(selectedVertex);
+                        int endIndex = vertices.indexOf(vertex);
+                        if(startIndex != endIndex){
+                            // Проверяем, существует ли ребро
+                            boolean edgeExists = isEdgeExists(startIndex, endIndex);
+                            if (!edgeExists){
+                            Line edge = new Line( // Cоздаём линию
+                                    selectedVertex.getCenterX(), selectedVertex.getCenterY(),
+                                    vertex.getCenterX(), vertex.getCenterY()
+                            );
+                            edges.add(new EdgeInfo(startIndex, endIndex,edge)); // Добавляем ребро в список
+                            graphPane.getChildren().add(edge); // Выводим ребра на экран
+                            System.out.println("Ребро создано между " + selectedVertex + " и " + vertex);
+                        } else {
+                                showAlert(
+                                        "Ошибка",
+                                        "Ребро уже существует",
+                                        "Между этими вершинами уже есть соединение."
+                                );
+                            }}
 
-                    selectedVertex = null; // Сбрасываем выбор вершины
+                        selectedVertex = null; // Сбрасываем выбор вершины
+                    }
                 }
             }
         });
@@ -455,52 +465,49 @@ public class Main extends Application {
     }
 
     // Запускается скомпилированный с++ код, который решает задачу триангуляции графа
-    private void openExeAndFindSolution(){
+    private void openExeAndFindSolution() {
         try {
             saveState();
-            // Запуск исполняемого файла
             Process process = new ProcessBuilder("Сoursework IT 31").start();
 
             // Чтение вывода программы
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-            // Чтение новой матрицы из С++
             List<List<Integer>> newMatrix = new ArrayList<>();
             String line;
             while ((line = reader.readLine()) != null) {
-                List<Integer> row = new ArrayList<>();
-                String[] values = line.split("\\s+");
-                for (String val : values){
-                    row.add(Integer.parseInt(val));
-                }
-                if (!row.isEmpty()){
+                List<Integer> row = Arrays.stream(line.split("\\s+"))
+                        .map(Integer::parseInt)
+                        .collect(Collectors.toList());
+                if (!row.isEmpty()) {
                     newMatrix.add(row);
                 }
             }
-            // Удаление рёбер, не совпадающих с новой матрицей
+
+            // Удаление лишних рёбер и окрашивание
             List<EdgeInfo> toRemove = new ArrayList<>();
             for (EdgeInfo edge : edges) {
                 int i = edge.getStartIndex();
                 int j = edge.getEndIndex();
-
-                if (i >= newMatrix.size() || j >= newMatrix.size() ||
-                        newMatrix.get(i).get(j) == 0) {
+                if (i >= newMatrix.size() || j >= newMatrix.size() || newMatrix.get(i).get(j) == 0) {
                     toRemove.add(edge);
                 }
             }
-
             graphPane.getChildren().removeAll(
                     toRemove.stream().map(EdgeInfo::getLine).collect(Collectors.toList())
             );
             edges.removeAll(toRemove);
 
-            // Находим все треугольники и окрашиваем рёбра
             colorTriangles(newMatrix);
-
             process.waitFor();
-            createAdjacencyMatrix(vertices);
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
+            showAlert(
+                    "Ошибка запуска",
+                    "Файл не найден",
+                    "Исполняемый файл 'Сoursework IT 31' не обнаружен.\nПроверьте путь: " +
+                            new File("Сoursework IT 31").getAbsolutePath()
+            );
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -557,6 +564,23 @@ public class Main extends Application {
                 edge.setColor(color);
             }
         }
+    }
+
+    // Вспомогательный метод для проверки рёбер
+    private boolean isEdgeExists(int start, int end) {
+        return edges.stream().anyMatch(edge ->
+                (edge.getStartIndex() == start && edge.getEndIndex() == end) ||
+                        (edge.getStartIndex() == end && edge.getEndIndex() == start)
+        );
+    }
+
+    // Метод для показа ошибок
+    private void showAlert(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     public static void main(String[] args) {
